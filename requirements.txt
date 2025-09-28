@@ -1,7 +1,7 @@
-streamlit
-reportlab
-python-docx
-pillow
-pandas
+streamlit==1.39.0
+reportlab==4.2.2
+python-docx==1.1.2
+pillow==10.4.0
+pandas==2.2.2
 
 
