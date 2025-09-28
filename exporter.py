@@ -2,26 +2,27 @@ from fpdf import FPDF
 from docx import Document
 from docx.shared import Inches
 from io import BytesIO
-export_to_pdf
-# Exportar a PDF
+import os
 
-# Reemplaza TODA la función export_to_pdf(...)
+# -----------------------------
+# Exportar a PDF
+# -----------------------------
 def export_to_pdf(nombre_receta, ingredientes, porciones, notas):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", "B", 16)
-    
+
     # Título
     pdf.cell(0, 10, nombre_receta, 0, 1, "C")
     pdf.set_font("Arial", "", 12)
     pdf.cell(0, 10, f"Porciones: {porciones}", 0, 1)
 
-    # Ingredientes (Tabla simple)
+    # Ingredientes (tabla)
     pdf.set_font("Arial", "B", 12)
     pdf.cell(60, 10, "Ingrediente", 1, 0, "C")
     pdf.cell(30, 10, "Cantidad", 1, 0, "C")
     pdf.cell(30, 10, "Unidad", 1, 1, "C")
-    
+
     pdf.set_font("Arial", "", 12)
     for ing in ingredientes:
         pdf.cell(60, 10, ing["nombre"], 1, 0)
@@ -35,30 +36,31 @@ def export_to_pdf(nombre_receta, ingredientes, porciones, notas):
         pdf.cell(0, 10, "Notas:", 0, 1)
         pdf.set_font("Arial", "", 10)
         pdf.multi_cell(0, 5, notas)
-        
-    # Devuelve el PDF como bytes (esencial para Streamlit)
-    return pdf.output(dest='S').encode('latin-1')
 
+    # Devuelve el PDF como bytes (para Streamlit)
+    return pdf.output(dest="S").encode("latin-1")
+
+
+# -----------------------------
 # Exportar a DOCX
-# Reemplaza la línea 'doc.save(...)' por estas tres líneas:
-    bio = BytesIO()
-    doc.save(bio)
-    return bio.getvalue()
+# -----------------------------
+def export_to_docx(nombre_receta, ingredientes, porciones, notas):
     doc = Document()
 
-    # Logo
+    # Logo (opcional)
     if os.path.exists("assets/logo.png"):
         doc.add_picture("assets/logo.png", width=Inches(1.5))
 
+    # Título
     doc.add_heading(nombre_receta, 0)
     doc.add_paragraph(f"Porciones: {porciones}")
 
     # Ingredientes
     table = doc.add_table(rows=1, cols=3)
     hdr_cells = table.rows[0].cells
-    hdr_cells[0].text = 'Ingrediente'
-    hdr_cells[1].text = 'Cantidad'
-    hdr_cells[2].text = 'Unidad'
+    hdr_cells[0].text = "Ingrediente"
+    hdr_cells[1].text = "Cantidad"
+    hdr_cells[2].text = "Unidad"
 
     for ing in ingredientes:
         row_cells = table.add_row().cells
@@ -68,8 +70,11 @@ def export_to_pdf(nombre_receta, ingredientes, porciones, notas):
 
     # Notas
     if notas:
-        doc.add_heading('Notas', level=1)
+        doc.add_heading("Notas", level=1)
         doc.add_paragraph(notas)
 
-    doc.save(f"{nombre_receta}.docx")
+    # Devuelve DOCX como bytes (para Streamlit)
+    bio = BytesIO()
+    doc.save(bio)
+    return bio.getvalue()
 
