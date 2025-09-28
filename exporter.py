@@ -1,46 +1,49 @@
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib import colors
+from fpdf import FPDF
 from docx import Document
 from docx.shared import Inches
-import os
-
+from io import BytesIO
+export_to_pdf
 # Exportar a PDF
+
+# Reemplaza TODA la función export_to_pdf(...)
 def export_to_pdf(nombre_receta, ingredientes, porciones, notas):
-    doc = SimpleDocTemplate(f"{nombre_receta}.pdf")
-    styles = getSampleStyleSheet()
-    story = []
-
-    # Logo
-    if os.path.exists("assets/logo.png"):
-        story.append(Image("assets/logo.png", width=100, height=100))
-        story.append(Spacer(1, 12))
-
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", "B", 16)
+    
     # Título
-    story.append(Paragraph(f"<b>{nombre_receta}</b>", styles['Title']))
-    story.append(Paragraph(f"Porciones: {porciones}", styles['Normal']))
-    story.append(Spacer(1, 12))
+    pdf.cell(0, 10, nombre_receta, 0, 1, "C")
+    pdf.set_font("Arial", "", 12)
+    pdf.cell(0, 10, f"Porciones: {porciones}", 0, 1)
 
-    # Ingredientes en tabla
-    data = [["Ingrediente", "Cantidad", "Unidad"]] + [
-        [ing["nombre"], ing["cantidad"], ing["unidad"]] for ing in ingredientes
-    ]
-    table = Table(data, hAlign="LEFT")
-    table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-    ]))
-    story.append(table)
-    story.append(Spacer(1, 12))
+    # Ingredientes (Tabla simple)
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(60, 10, "Ingrediente", 1, 0, "C")
+    pdf.cell(30, 10, "Cantidad", 1, 0, "C")
+    pdf.cell(30, 10, "Unidad", 1, 1, "C")
+    
+    pdf.set_font("Arial", "", 12)
+    for ing in ingredientes:
+        pdf.cell(60, 10, ing["nombre"], 1, 0)
+        pdf.cell(30, 10, str(ing["cantidad"]), 1, 0)
+        pdf.cell(30, 10, ing["unidad"], 1, 1)
 
     # Notas
     if notas:
-        story.append(Paragraph(f"<b>Notas:</b> {notas}", styles['Normal']))
-
-    doc.build(story)
+        pdf.ln(10)
+        pdf.set_font("Arial", "B", 12)
+        pdf.cell(0, 10, "Notas:", 0, 1)
+        pdf.set_font("Arial", "", 10)
+        pdf.multi_cell(0, 5, notas)
+        
+    # Devuelve el PDF como bytes (esencial para Streamlit)
+    return pdf.output(dest='S').encode('latin-1')
 
 # Exportar a DOCX
-def export_to_docx(nombre_receta, ingredientes, porciones, notas):
+# Reemplaza la línea 'doc.save(...)' por estas tres líneas:
+    bio = BytesIO()
+    doc.save(bio)
+    return bio.getvalue()
     doc = Document()
 
     # Logo
@@ -69,3 +72,4 @@ def export_to_docx(nombre_receta, ingredientes, porciones, notas):
         doc.add_paragraph(notas)
 
     doc.save(f"{nombre_receta}.docx")
+
