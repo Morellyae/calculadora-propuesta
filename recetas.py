@@ -1,4 +1,4 @@
-recetas = {
+RECETAS = {
     "Crema Pastelera": {
         "porciones": 10,
         "ingredientes": [
@@ -112,3 +112,4 @@ recetas = {
         ]
     }
 }
+
