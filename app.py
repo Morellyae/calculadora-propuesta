@@ -14,19 +14,19 @@ porcion = st.sidebar.number_input("Número de porciones", min_value=1, value=10)
 # Mostrar receta seleccionada
 data = RECETAS[receta]
 st.subheader(f"📌 {receta}")
-st.write(data["descripcion"])
+st.write(data.get("descripcion", "Sin descripción disponible."))
 
 st.markdown("### Ingredientes")
 tabla = []
-for ing, det in data["ingredientes"].items():
-    cantidad_total = det["cantidad"] * porcion / data["base_porciones"]
-    tabla.append([ing, f"{cantidad_total:.2f} {det['unidad']}", f"₡{det['costo'] * cantidad_total:.2f}"])
+for ing in data["ingredientes"]:
+    cantidad_total = ing["cantidad"] * porcion / data["porciones"]
+    tabla.append([ing["nombre"], f"{cantidad_total:.2f} {ing['unidad']}"])
 
 st.table(tabla)
 
 # Notas
 st.markdown("### 📝 Notas")
-nota = st.text_area("Escribe tus observaciones aquí")
+nota = st.text_area("Escribe tus observaciones aquí", value=data.get("notas", ""))
 
 # Exportar
 st.markdown("### 📂 Exportar Receta")
