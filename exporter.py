@@ -30,10 +30,14 @@ def export_to_pdf(receta, data, porciones, nota):
     pdf.cell(0, 10, "Ingredientes", ln=True)
     pdf.set_font("Arial", "", 12)
 
-    for ing, det in data["ingredientes"].items():
-        cantidad_total = det["cantidad"] * porciones / data["base_porciones"]
-        costo_total = det["costo"] * cantidad_total
-        pdf.cell(0, 8, f"- {ing}: {cantidad_total:.2f} {det['unidad']} | ₡{costo_total:.2f}", ln=True)
+    ingredientes = data.get("ingredientes", {})
+    if isinstance(ingredientes, dict) and ingredientes:
+        for ing, det in ingredientes.items():
+            cantidad_total = det["cantidad"] * porciones / data["base_porciones"]
+            costo_total = det["costo"] * cantidad_total
+            pdf.cell(0, 8, f"- {ing}: {cantidad_total:.2f} {det['unidad']} | ₡{costo_total:.2f}", ln=True)
+    else:
+        pdf.cell(0, 8, "⚠️ No hay ingredientes definidos.", ln=True)
 
     # Notas
     if nota:
@@ -76,10 +80,14 @@ def export_to_docx(receta, data, porciones, nota):
 
     # Ingredientes
     doc.add_heading("Ingredientes", level=2)
-    for ing, det in data["ingredientes"].items():
-        cantidad_total = det["cantidad"] * porciones / data["base_porciones"]
-        costo_total = det["costo"] * cantidad_total
-        doc.add_paragraph(f"- {ing}: {cantidad_total:.2f} {det['unidad']} | ₡{costo_total:.2f}")
+    ingredientes = data.get("ingredientes", {})
+    if isinstance(ingredientes, dict) and ingredientes:
+        for ing, det in ingredientes.items():
+            cantidad_total = det["cantidad"] * porciones / data["base_porciones"]
+            costo_total = det["costo"] * cantidad_total
+            doc.add_paragraph(f"- {ing}: {cantidad_total:.2f} {det['unidad']} | ₡{costo_total:.2f}")
+    else:
+        doc.add_paragraph("⚠️ No hay ingredientes definidos.")
 
     # Notas
     if nota:
@@ -98,3 +106,4 @@ def export_to_docx(receta, data, porciones, nota):
     doc.save(filename)
     return filename
 
+    
