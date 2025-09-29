@@ -1,58 +1,57 @@
 import os
+from datetime import datetime
+import streamlit as st
 from fpdf import FPDF
 from docx import Document
-import streamlit as st
+from docx.shared import Inches
 
 LOGO_PATH = os.path.join(os.path.dirname(__file__), "logo.png")
 
-# === PDF ===
-def export_to_pdf(nombre, data, porciones, nota):
-    pdf = FPDF()
+# -------- PDF -------- #
+class PDF(FPDF):
+    def header(self):
+        if os.path.exists(LOGO_PATH):
+            self.image(LOGO_PATH, x=170, y=8, w=25)  # Logo en esquina sup derecha
+        self.set_font("Helvetica", "B", 14)
+        self.cell(0, 10, "Calculadora de Pastelería Profesional", ln=1, align="C")
+
+    def footer(self):
+        self.set_y(-15)
+        self.set_font("Helvetica", "I", 9)
+        fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
+        self.cell(
+            0,
+            10,
+            f"Calculadora de Pastelería Profesional – Chef More’s | Exportado: {fecha}",
+            align="C",
+        )
+
+def export_to_pdf(nombre, data, porcion, nota):
+    pdf = PDF()
     pdf.add_page()
 
-    # Logo
-    if os.path.exists(LOGO_PATH):
-        pdf.image(LOGO_PATH, x=10, y=8, w=30)
-
-    # Encabezado
-    pdf.set_font("Helvetica", "B", 16)
-    pdf.cell(0, 10, "Chef More's - Calculadora de Pastelería Profesional", ln=True, align="C")
-    pdf.ln(10)
-
     # Título receta
-    pdf.set_font("Helvetica", "B", 14)
-    pdf.cell(0, 10, nombre, ln=True)
-
-    # Descripción
-    pdf.set_font("Helvetica", "", 12)
-    pdf.multi_cell(0, 10, data.get("descripcion", "Sin descripción disponible."))
-    pdf.ln(5)
+    pdf.set_font("Helvetica", "B", 16)
+    pdf.cell(0, 10, nombre, ln=1, align="C")
 
     # Ingredientes
-    pdf.set_font("Helvetica", "B", 13)
-    pdf.cell(0, 10, "Ingredientes:", ln=True)
-    pdf.set_font("Helvetica", "", 12)
+    pdf.set_font("Helvetica", "B", 12)
+    pdf.cell(0, 10, "Ingredientes:", ln=1)
 
+    pdf.set_font("Helvetica", "", 11)
     for ing in data["ingredientes"]:
-        cantidad_total = ing["cantidad"] * porciones / data["porciones"]
-        linea = f"- {ing['nombre']}: {cantidad_total:.2f} {ing['unidad']}"
-        pdf.multi_cell(0, 8, linea)
-
-    pdf.ln(5)
+        cantidad_total = ing["cantidad"] * porcion / data["porciones"]
+        pdf.cell(0, 8, f"- {ing['nombre']}: {cantidad_total:.2f} {ing['unidad']}", ln=1)
 
     # Notas
-    pdf.set_font("Helvetica", "B", 13)
-    pdf.cell(0, 10, "Notas:", ln=True)
-    pdf.set_font("Helvetica", "", 12)
-    pdf.multi_cell(0, 8, nota if nota else "Sin notas.")
+    pdf.ln(5)
+    pdf.set_font("Helvetica", "B", 12)
+    pdf.cell(0, 10, "Notas:", ln=1)
+    pdf.set_font("Helvetica", "", 11)
+    pdf.multi_cell(0, 8, nota if nota else "Sin notas adicionales.")
 
-    # Pie de página
-    pdf.set_y(-20)
-    pdf.set_font("Helvetica", "I", 10)
-    pdf.cell(0, 10, "Chef More's © 2025 - Hecho con amor en Costa Rica", 0, 0, "C")
-
-    # Exportar como descarga
-    pdf_output = pdf.output(dest="S").encode("latin-1", "ignore")
+    # Descargar
+    pdf_output = pdf.output(dest="S").encode("utf-8")
     st.download_button(
         label="📄 Descargar PDF",
         data=pdf_output,
@@ -60,41 +59,43 @@ def export_to_pdf(nombre, data, porciones, nota):
         mime="application/pdf",
     )
 
-# === WORD ===
-def export_to_docx(nombre, data, porciones, nota):
+# -------- WORD -------- #
+def export_to_docx(nombre, data, porcion, nota):
     doc = Document()
 
-    # Encabezado
-    doc.add_heading("Chef More's - Calculadora de Pastelería Profesional", level=0)
+    # Logo
+    if os.path.exists(LOGO_PATH):
+        doc.add_picture(LOGO_PATH, width=Inches(1.0))
+
+    # Título
     doc.add_heading(nombre, level=1)
 
-    # Descripción
-    doc.add_paragraph(data.get("descripcion", "Sin descripción disponible."))
-
     # Ingredientes
-    doc.add_heading("Ingredientes", level=2)
+    doc.add_heading("Ingredientes:", level=2)
     for ing in data["ingredientes"]:
-        cantidad_total = ing["cantidad"] * porciones / data["porciones"]
-        doc.add_paragraph(
-            f"{ing['nombre']}: {cantidad_total:.2f} {ing['unidad']}", style="List Bullet"
-        )
+        cantidad_total = ing["cantidad"] * porcion / data["porciones"]
+        doc.add_paragraph(f"- {ing['nombre']}: {cantidad_total:.2f} {ing['unidad']}")
 
     # Notas
-    doc.add_heading("Notas", level=2)
-    doc.add_paragraph(nota if nota else "Sin notas.")
+    doc.add_heading("Notas:", level=2)
+    doc.add_paragraph(nota if nota else "Sin notas adicionales.")
 
     # Pie
-    doc.add_paragraph("\nChef More's © 2025 - Hecho con amor en Costa Rica")
+    fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
+    doc.add_paragraph(
+        f"\nCalculadora de Pastelería Profesional – Chef More’s\nExportado: {fecha}"
+    )
 
-    # Exportar como descarga
+    # Descargar
     from io import BytesIO
-    buffer = BytesIO()
-    doc.save(buffer)
-    buffer.seek(0)
+
+    file_stream = BytesIO()
+    doc.save(file_stream)
+    file_stream.seek(0)
 
     st.download_button(
         label="📝 Descargar Word",
-        data=buffer,
+        data=file_stream,
         file_name=f"{nombre}.docx",
         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     )
