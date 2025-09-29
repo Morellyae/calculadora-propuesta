@@ -13,22 +13,26 @@ def export_to_pdf(receta, data, porciones, nota):
     pdf = FPDF()
     pdf.add_page()
 
-    # Logo en la esquina superior derecha
+    # Fuente que soporte UTF-8
+    pdf.add_font("DejaVu", "", fname="/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", uni=True)
+    pdf.set_font("DejaVu", "", 12)
+
+    # Logo arriba a la derecha
     if os.path.exists(LOGO_PATH):
         pdf.image(LOGO_PATH, x=160, y=8, w=30)
 
     # Título
-    pdf.set_font("Arial", "B", 16)
+    pdf.set_font("DejaVu", "", 16)
     pdf.cell(0, 10, receta, ln=True, align="L")
 
     # Descripción
-    pdf.set_font("Arial", "", 12)
+    pdf.set_font("DejaVu", "", 12)
     pdf.multi_cell(0, 10, data.get("descripcion", ""))
 
     # Ingredientes
-    pdf.set_font("Arial", "B", 14)
+    pdf.set_font("DejaVu", "B", 14)
     pdf.cell(0, 10, "Ingredientes", ln=True)
-    pdf.set_font("Arial", "", 12)
+    pdf.set_font("DejaVu", "", 12)
 
     ingredientes = data.get("ingredientes", {})
     if isinstance(ingredientes, dict) and ingredientes:
@@ -41,18 +45,17 @@ def export_to_pdf(receta, data, porciones, nota):
 
     # Notas
     if nota:
-        pdf.set_font("Arial", "B", 14)
+        pdf.set_font("DejaVu", "B", 14)
         pdf.cell(0, 10, "Notas:", ln=True)
-        pdf.set_font("Arial", "", 12)
+        pdf.set_font("DejaVu", "", 12)
         pdf.multi_cell(0, 8, nota)
 
     # Pie de página
     pdf.set_y(-30)
-    pdf.set_font("Arial", "I", 10)
+    pdf.set_font("DejaVu", "I", 10)
     fecha = datetime.now().strftime("%d/%m/%Y")
     pdf.multi_cell(0, 6, f"Calculadora de Pastelería Profesional – Chef More’s\nFecha de exportación: {fecha}", align="C")
 
-    # Guardar
     filename = f"{receta.replace(' ', '_')}.pdf"
     pdf.output(filename)
     return filename
@@ -69,8 +72,8 @@ def export_to_docx(receta, data, porciones, nota):
         header = doc.sections[0].header
         paragraph = header.paragraphs[0]
         run = paragraph.add_run()
-        run.add_picture(LOGO_PATH, width=Inches(1))  # tamaño pequeño
-        paragraph.alignment = 2  # derecha
+        run.add_picture(LOGO_PATH, width=Inches(1))
+        paragraph.alignment = 2
 
     # Título
     doc.add_heading(receta, level=1)
@@ -101,9 +104,9 @@ def export_to_docx(receta, data, porciones, nota):
     footer.text = f"Calculadora de Pastelería Profesional – Chef More’s\nFecha de exportación: {fecha}"
     footer.runs[0].font.size = Pt(9)
 
-    # Guardar
     filename = f"{receta.replace(' ', '_')}.docx"
     doc.save(filename)
     return filename
 
     
+
