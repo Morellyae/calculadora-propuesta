@@ -31,9 +31,27 @@ nota = st.text_area("Escribe tus observaciones aquí", value=data.get("notas", "
 # Exportar
 st.markdown("### 📂 Exportar Receta")
 col1, col2 = st.columns(2)
+
 with col1:
     if st.button("📄 Exportar a PDF"):
-        export_to_pdf(receta, data, porcion, nota)
+        filename = export_to_pdf(receta, data, porcion, nota)
+        with open(filename, "rb") as f:
+            st.download_button(
+                "⬇️ Descargar PDF",
+                f,
+                file_name=filename,
+                mime="application/pdf"
+            )
+
 with col2:
     if st.button("📝 Exportar a Word"):
-        export_to_docx(receta, data, porcion, nota)
+        filename = export_to_docx(receta, data, porcion, nota)
+        with open(filename, "rb") as f:
+            st.download_button(
+                "⬇️ Descargar Word",
+                f,
+                file_name=filename,
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            )
+
+
