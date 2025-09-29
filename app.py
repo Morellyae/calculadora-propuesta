@@ -31,9 +31,7 @@ nota = st.text_area("Escribe tus observaciones aquí", value=data.get("notas", "
 # Exportar
 st.markdown("### 📂 Exportar Receta")
 col1, col2 = st.columns(2)
-
 with col1:
     export_to_pdf(receta, data, porcion, nota)
-
 with col2:
     export_to_docx(receta, data, porcion, nota)
