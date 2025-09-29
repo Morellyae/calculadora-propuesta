@@ -1,75 +1,100 @@
 from fpdf import FPDF
 from docx import Document
-from docx.shared import Inches
-from io import BytesIO
+from docx.shared import Inches, Pt
+from datetime import datetime
 import os
 
-# Exportar a PDF
-def export_to_pdf(nombre_receta, ingredientes, porciones, notas):
+LOGO_PATH = "logo.png"
+
+# -----------------------
+# PDF Export
+# -----------------------
+def export_to_pdf(receta, data, porciones, nota):
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_font("Arial", "B", 16)
-    
+
+    # Logo en la esquina superior derecha
+    if os.path.exists(LOGO_PATH):
+        pdf.image(LOGO_PATH, x=160, y=8, w=30)
+
     # Título
-    pdf.cell(0, 10, nombre_receta, 0, 1, "C")
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(0, 10, receta, ln=True, align="L")
+
+    # Descripción
     pdf.set_font("Arial", "", 12)
-    pdf.cell(0, 10, f"Porciones: {porciones}", 0, 1)
-
-    # Ingredientes (Tabla simple)
-    pdf.set_font("Arial", "B", 12)
-    pdf.cell(60, 10, "Ingrediente", 1, 0, "C")
-    pdf.cell(30, 10, "Cantidad", 1, 0, "C")
-    pdf.cell(30, 10, "Unidad", 1, 1, "C")
-    
-    pdf.set_font("Arial", "", 12)
-    for ing in ingredientes:
-        pdf.cell(60, 10, ing["nombre"], 1, 0)
-        pdf.cell(30, 10, str(ing["cantidad"]), 1, 0)
-        pdf.cell(30, 10, ing["unidad"], 1, 1)
-
-    # Notas
-    if notas:
-        pdf.ln(10)
-        pdf.set_font("Arial", "B", 12)
-        pdf.cell(0, 10, "Notas:", 0, 1)
-        pdf.set_font("Arial", "", 10)
-        pdf.multi_cell(0, 5, notas)
-        
-    # Devuelve el PDF como bytes (para Streamlit)
-    return pdf.output(dest='S').encode('latin-1')
-
-
-# Exportar a DOCX
-def export_to_docx(nombre_receta, ingredientes, porciones, notas):
-    doc = Document()
-
-    # Logo (opcional, si existe)
-    if os.path.exists("logo.png"):
-        doc.add_picture("logo.png", width=Inches(1.5))
-
-    doc.add_heading(nombre_receta, 0)
-    doc.add_paragraph(f"Porciones: {porciones}")
+    pdf.multi_cell(0, 10, data.get("descripcion", ""))
 
     # Ingredientes
-    table = doc.add_table(rows=1, cols=3)
-    hdr_cells = table.rows[0].cells
-    hdr_cells[0].text = 'Ingrediente'
-    hdr_cells[1].text = 'Cantidad'
-    hdr_cells[2].text = 'Unidad'
+    pdf.set_font("Arial", "B", 14)
+    pdf.cell(0, 10, "Ingredientes", ln=True)
+    pdf.set_font("Arial", "", 12)
 
-    for ing in ingredientes:
-        row_cells = table.add_row().cells
-        row_cells[0].text = ing["nombre"]
-        row_cells[1].text = str(ing["cantidad"])
-        row_cells[2].text = ing["unidad"]
+    for ing, det in data["ingredientes"].items():
+        cantidad_total = det["cantidad"] * porciones / data["base_porciones"]
+        costo_total = det["costo"] * cantidad_total
+        pdf.cell(0, 8, f"- {ing}: {cantidad_total:.2f} {det['unidad']} | ₡{costo_total:.2f}", ln=True)
 
     # Notas
-    if notas:
-        doc.add_heading('Notas', level=1)
-        doc.add_paragraph(notas)
+    if nota:
+        pdf.set_font("Arial", "B", 14)
+        pdf.cell(0, 10, "Notas:", ln=True)
+        pdf.set_font("Arial", "", 12)
+        pdf.multi_cell(0, 8, nota)
 
-    # Devuelve el DOCX como bytes
-    bio = BytesIO()
-    doc.save(bio)
-    return bio.getvalue()
+    # Pie de página
+    pdf.set_y(-30)
+    pdf.set_font("Arial", "I", 10)
+    fecha = datetime.now().strftime("%d/%m/%Y")
+    pdf.multi_cell(0, 6, f"Calculadora de Pastelería Profesional – Chef More’s\nFecha de exportación: {fecha}", align="C")
+
+    # Guardar
+    filename = f"{receta.replace(' ', '_')}.pdf"
+    pdf.output(filename)
+    return filename
+
+
+# -----------------------
+# Word Export
+# -----------------------
+def export_to_docx(receta, data, porciones, nota):
+    doc = Document()
+
+    # Logo arriba derecha
+    if os.path.exists(LOGO_PATH):
+        header = doc.sections[0].header
+        paragraph = header.paragraphs[0]
+        run = paragraph.add_run()
+        run.add_picture(LOGO_PATH, width=Inches(1))  # tamaño pequeño
+        paragraph.alignment = 2  # derecha
+
+    # Título
+    doc.add_heading(receta, level=1)
+
+    # Descripción
+    doc.add_paragraph(data.get("descripcion", ""))
+
+    # Ingredientes
+    doc.add_heading("Ingredientes", level=2)
+    for ing, det in data["ingredientes"].items():
+        cantidad_total = det["cantidad"] * porciones / data["base_porciones"]
+        costo_total = det["costo"] * cantidad_total
+        doc.add_paragraph(f"- {ing}: {cantidad_total:.2f} {det['unidad']} | ₡{costo_total:.2f}")
+
+    # Notas
+    if nota:
+        doc.add_heading("Notas", level=2)
+        doc.add_paragraph(nota)
+
+    # Pie de página
+    section = doc.sections[0]
+    footer = section.footer.paragraphs[0]
+    fecha = datetime.now().strftime("%d/%m/%Y")
+    footer.text = f"Calculadora de Pastelería Profesional – Chef More’s\nFecha de exportación: {fecha}"
+    footer.runs[0].font.size = Pt(9)
+
+    # Guardar
+    filename = f"{receta.replace(' ', '_')}.docx"
+    doc.save(filename)
+    return filename
 
