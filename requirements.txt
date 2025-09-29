@@ -1,8 +1,8 @@
 streamlit
-fpdf
+fpdf2==2.7.9
 python-docx
-Pillow
-pandas
+
+
 
 
 
