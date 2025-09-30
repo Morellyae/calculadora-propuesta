@@ -1,10 +1,12 @@
 # exporter.py
-# Funciones para exportar recetas a PDF y Word con logo y pie de página
+# Funciones para exportar recetas a PDF y Word con logo, pie de página y costos.
 
 from fpdf import FPDF
 from docx import Document
 from docx.shared import Inches
 from io import BytesIO
+from recetas import RECETAS # Importado para obtener el factor de escala base
+from costos import COSTOS_UNITARIOS # Importado para referencia (aunque la lógica de cálculo está en app.py)
 
 # ==========================
 # Cargar logo en memoria
@@ -36,8 +38,9 @@ class PDF(FPDF):
 
 # ==========================
 # Exportar a PDF
+# La función ahora acepta los argumentos de costo
 # ==========================
-def export_to_pdf(nombre_receta, ingredientes, porciones, notas):
+def export_to_pdf(nombre_receta, ingredientes, porciones, notas, costo_total_receta, costo_por_porcion):
     pdf = PDF(orientation="P", unit="mm", format="A4")
     pdf.add_page()
 
@@ -57,7 +60,7 @@ def export_to_pdf(nombre_receta, ingredientes, porciones, notas):
         pdf.ln(10)
 
     pdf.set_font(FONT_NAME, "", 12)
-    pdf.cell(0, 8, f"Porciones: {porciones}", 0, 1)
+    pdf.cell(0, 8, f"Porciones Calculadas: {porciones}", 0, 1)
     pdf.ln(5)
 
     # === Tabla de ingredientes ===
@@ -68,10 +71,28 @@ def export_to_pdf(nombre_receta, ingredientes, porciones, notas):
     pdf.cell(40, 10, "Unidad", 1, 1, "C", 1)
 
     pdf.set_font(FONT_NAME, "", 11)
+    
+    # Determinamos el factor de escala para mostrar las cantidades correctas en el PDF
+    # NOTA: En la lógica de Streamlit (app.py) ya se hace este cálculo
+    # Aquí solo mostramos el dato que viene en 'ingredientes' (que ya está escalado)
     for ing in ingredientes:
+        cantidad_str = str(ing.get("cantidad_escalada", ing["cantidad"])) # Usamos el valor escalado de app.py
+        
         pdf.cell(80, 8, ing["nombre"], 1, 0)
-        pdf.cell(40, 8, str(ing["cantidad"]), 1, 0, "R")
+        pdf.cell(40, 8, cantidad_str, 1, 0, "R")
         pdf.cell(40, 8, ing["unidad"], 1, 1)
+
+
+    # === SECCIÓN DE COSTOS ===
+    if costo_total_receta > 0:
+        pdf.ln(10)
+        pdf.set_font(FONT_NAME, "B", 12)
+        pdf.cell(0, 8, "💰 Costo de la Receta", 0, 1)
+        
+        pdf.set_font(FONT_NAME, "", 11)
+        pdf.cell(0, 7, f"Costo Total ({porciones} porciones): ${costo_total_receta:.2f}", 0, 1)
+        pdf.cell(0, 7, f"Costo por Porción: ${costo_por_porcion:.2f}", 0, 1)
+
 
     # === Notas ===
     if notas:
@@ -82,16 +103,24 @@ def export_to_pdf(nombre_receta, ingredientes, porciones, notas):
         pdf.multi_cell(0, 5, notas)
 
     # Exportar a memoria
-    pdf_output_buffer = BytesIO()
-    pdf_bytes = pdf.output(dest="S").encode("latin-1", "replace")
-    pdf_output_buffer.write(pdf_bytes)
-    return pdf_output_buffer.getvalue()
+    # Usamos BytesIO para el manejo robusto de bytes en Streamlit
+    buffer = BytesIO()
+    try:
+        # Intentamos obtener el resultado directamente como bytes
+        pdf_bytes = pdf.output(dest="S").encode("latin-1", "replace")
+    except UnicodeEncodeError:
+        # Fallback si hay problemas de codificación de caracteres especiales
+        pdf_bytes = pdf.output(dest="S").encode("latin-1", "ignore")
+        
+    buffer.write(pdf_bytes)
+    return buffer.getvalue()
 
 
 # ==========================
 # Exportar a DOCX
+# La función ahora acepta los argumentos de costo
 # ==========================
-def export_to_docx(nombre_receta, ingredientes, porciones, notas):
+def export_to_docx(nombre_receta, ingredientes, porciones, notas, costo_total_receta, costo_por_porcion):
     doc = Document()
 
     # === HEADER: Logo y Título ===
@@ -103,10 +132,19 @@ def export_to_docx(nombre_receta, ingredientes, porciones, notas):
     else:
         doc.add_heading(nombre_receta, 0)
 
-    doc.add_paragraph(f"Porciones: {porciones}")
+    doc.add_paragraph(f"Porciones calculadas: {porciones}")
     doc.add_paragraph()
+    
+    # --- SECCIÓN DE COSTOS ---
+    if costo_total_receta > 0:
+        doc.add_heading("💰 Costo de la Receta", level=1)
+        doc.add_paragraph(f"Costo Total ({porciones} porciones): ${costo_total_receta:.2f}")
+        doc.add_paragraph(f"Costo por Porción: ${costo_por_porcion:.2f}")
+        doc.add_paragraph()
+
 
     # Ingredientes
+    doc.add_heading("Ingredientes", level=1)
     table = doc.add_table(rows=1, cols=3)
     table.style = "Light Shading Accent 1"
     hdr_cells = table.rows[0].cells
@@ -115,9 +153,11 @@ def export_to_docx(nombre_receta, ingredientes, porciones, notas):
     hdr_cells[2].text = "Unidad"
 
     for ing in ingredientes:
+        cantidad_str = str(ing.get("cantidad_escalada", ing["cantidad"])) # Usamos el valor escalado de app.py
+        
         row_cells = table.add_row().cells
         row_cells[0].text = ing["nombre"]
-        row_cells[1].text = str(ing["cantidad"])
+        row_cells[1].text = cantidad_str
         row_cells[2].text = ing["unidad"]
 
     # Notas
@@ -128,3 +168,4 @@ def export_to_docx(nombre_receta, ingredientes, porciones, notas):
     bio = BytesIO()
     doc.save(bio)
     return bio.getvalue()
+
