@@ -51,8 +51,14 @@ col1, col2 = st.columns(2)
 with col1:
     st.write("Generar PDF")
     
-    # Llamamos a la función de exportación, pasando solo la lista de ingredientes (data["ingredientes"])
-    pdf_bytes = export_to_pdf(receta, data["ingredientes"], porcion, nota)
+    # Inicializar a bytes vacíos para evitar errores si la exportación falla
+    pdf_bytes = b''
+    try:
+        # Llamamos a la función de exportación, pasando solo la lista de ingredientes (data["ingredientes"])
+        pdf_bytes = export_to_pdf(receta, data["ingredientes"], porcion, nota)
+    except Exception as e:
+        st.error(f"Error interno al generar el PDF: {e}")
+        st.info("Verifica las importaciones y la inicialización de FPDF en exporter.py.")
     
     # Usamos st.download_button para que Streamlit gestione la descarga
     st.download_button(
@@ -66,8 +72,15 @@ with col1:
 with col2:
     st.write("Generar Word (DOCX)")
     
-    # Llamamos a la función de exportación, pasando solo la lista de ingredientes
-    docx_bytes = export_to_docx(receta, data["ingredientes"], porcion, nota)
+    # Inicializar a bytes vacíos para evitar errores si la exportación falla
+    docx_bytes = b''
+    try:
+        # Llamamos a la función de exportación, pasando solo la lista de ingredientes
+        docx_bytes = export_to_docx(receta, data["ingredientes"], porcion, nota)
+    except Exception as e:
+        st.error(f"Error interno al generar el DOCX: {e}")
+        st.info("Verifica las importaciones y la inicialización de python-docx en exporter.py.")
+
 
     # Usamos st.download_button
     st.download_button(
@@ -77,6 +90,3 @@ with col2:
         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
 
-    
-    
-  
