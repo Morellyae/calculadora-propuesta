@@ -48,8 +48,13 @@ def export_to_pdf(nombre_receta, ingredientes, porciones, notas):
         # multi_cell permite saltos de línea automáticos
         pdf.multi_cell(0, 5, notas)
         
-    # === CORRECCIÓN CRÍTICA: Se elimina .encode() ya que pdf.output() devuelve bytes o bytearray ===
-    return pdf.output(dest='S')
+    # === CORRECCIÓN CRÍTICA: Asegura que el tipo devuelto es 'bytes' para Streamlit. ===
+    output_data = pdf.output(dest='S')
+    if isinstance(output_data, str):
+        # Si devuelve una cadena, la codificamos a bytes (necesario para fpdf con Times y acentos)
+        return output_data.encode('latin-1')
+    # Si ya es bytes o bytearray, lo devolvemos directamente.
+    return output_data
 
 # Exportar a DOCX (usa python-docx, devuelve bytes)
 def export_to_docx(nombre_receta, ingredientes, porciones, notas):
@@ -85,4 +90,3 @@ def export_to_docx(nombre_receta, ingredientes, porciones, notas):
     doc.save(bio)
     return bio.getvalue()
 
- 
