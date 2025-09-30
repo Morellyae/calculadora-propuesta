@@ -6,9 +6,20 @@ from docx import Document
 from docx.shared import Inches
 from io import BytesIO
 
+# Nueva importación para manejar la carga del logo
+try:
+    # Intenta cargar el logo una sola vez al inicio en memoria (BytesIO)
+    with open("logo.png", "rb") as f:
+        LOGO_DATA = BytesIO(f.read())
+except FileNotFoundError:
+    # Si falla, establecemos LOGO_DATA a None para que las funciones lo ignoren
+    LOGO_DATA = None
+    print("Advertencia: 'logo.png' no encontrado. La exportación funcionará sin logo.")
+
+
 # Exportar a PDF (usa fpdf, devuelve bytes)
 def export_to_pdf(nombre_receta, ingredientes, porciones, notas):
-    """Genera un archivo PDF con la receta y lo devuelve como objeto Bytes."""
+    """Genera un archivo PDF con la receta, incluyendo el logo, y lo devuelve como objeto Bytes."""
     # Usamos FPDF en modo vertical, con unidad milímetros, y formato A4
     pdf = FPDF(orientation='P', unit='mm', format='A4') 
     
@@ -17,9 +28,21 @@ def export_to_pdf(nombre_receta, ingredientes, porciones, notas):
     FONT_NAME = 'Times'
     pdf.add_page()
     
-    # Configuración de fuente y título
-    pdf.set_font(FONT_NAME, "B", 16) 
-    pdf.cell(0, 12, nombre_receta, 0, 1, "C") # Título centrado
+    # === HEADER: Logo y Título ===
+    if LOGO_DATA:
+        # Volvemos al inicio del buffer para que pueda leerse de nuevo en cada llamada
+        LOGO_DATA.seek(0) 
+        # Añadir la imagen al PDF (x, y, ancho)
+        pdf.image(LOGO_DATA, x=10, y=10, w=30)
+        # Posicionar el título a la derecha del logo
+        pdf.set_xy(45, 15)
+        pdf.set_font(FONT_NAME, "B", 18)
+        pdf.cell(0, 10, nombre_receta, 0, 1, "L")
+        pdf.ln(5) # Espacio después del título
+    else:
+        pdf.ln(10) # Si no hay logo, dejamos espacio
+        pdf.set_font(FONT_NAME, "B", 16) 
+        pdf.cell(0, 12, nombre_receta, 0, 1, "C") # Título centrado
     
     pdf.set_font(FONT_NAME, "", 12)
     pdf.cell(0, 8, f"Porciones: {porciones}", 0, 1)
@@ -50,20 +73,34 @@ def export_to_pdf(nombre_receta, ingredientes, porciones, notas):
         # multi_cell permite saltos de línea automáticos
         pdf.multi_cell(0, 5, notas)
         
-    # === CORRECCIÓN FINAL Y ROBUSTA: Usar BytesIO para forzar la salida a bytes ===
+    # Usar BytesIO para forzar la salida a bytes (más robusto para Streamlit)
     pdf_output_buffer = BytesIO()
     pdf_output_buffer.write(pdf.output()) 
     
-    # Devolvemos el contenido del buffer como bytes (getvalue() es de BytesIO)
+    # Devolvemos el contenido del buffer como bytes
     return pdf_output_buffer.getvalue()
 
 # Exportar a DOCX (usa python-docx, devuelve bytes)
 def export_to_docx(nombre_receta, ingredientes, porciones, notas):
-    """Genera un archivo DOCX con la receta y lo devuelve como objeto Bytes."""
+    """Genera un archivo DOCX con la receta, incluyendo el logo, y lo devuelve como objeto Bytes."""
     doc = Document()
+    
+    # === HEADER: Logo y Título ===
+    if LOGO_DATA:
+        # Volvemos al inicio del buffer para que python-docx lo pueda leer
+        LOGO_DATA.seek(0)
+        
+        # Añadir logo
+        # Usamos una copia del BytesIO para evitar conflictos de lectura/escritura si se llama muchas veces
+        logo_copy = BytesIO(LOGO_DATA.read())
+        doc.add_picture(logo_copy, width=Inches(0.75))
+        
+        # Después del logo, añadir el título
+        doc.add_heading(nombre_receta, 0)
+    else:
+        # Si no hay logo, solo añadir el título
+        doc.add_heading(nombre_receta, 0)
 
-    # Título y porciones
-    doc.add_heading(nombre_receta, 0)
     doc.add_paragraph(f"Porciones: {porciones}")
     doc.add_paragraph() # Salto de línea
 
@@ -91,6 +128,13 @@ def export_to_docx(nombre_receta, ingredientes, porciones, notas):
     doc.save(bio)
     return bio.getvalue()
 
+
+
+
+   
+
+
+ 
 
 
  
