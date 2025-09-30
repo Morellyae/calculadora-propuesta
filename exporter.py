@@ -87,7 +87,8 @@ def export_to_pdf(nombre_receta, ingredientes, porciones, notas, costo_total_rec
     if costo_total_receta > 0:
         pdf.ln(10)
         pdf.set_font(FONT_NAME, "B", 12)
-        pdf.cell(0, 8, "💰 Costo de la Receta", 0, 1)
+        # CORRECCIÓN: Se elimina el emoji 💰 para evitar error de codificación con FPDF
+        pdf.cell(0, 8, "Costo de la Receta", 0, 1) 
         
         pdf.set_font(FONT_NAME, "", 11)
         pdf.cell(0, 7, f"Costo Total ({porciones} porciones): ${costo_total_receta:.2f}", 0, 1)
@@ -137,6 +138,7 @@ def export_to_docx(nombre_receta, ingredientes, porciones, notas, costo_total_re
     
     # --- SECCIÓN DE COSTOS ---
     if costo_total_receta > 0:
+        # El DOCX puede manejar el emoji sin problemas
         doc.add_heading("💰 Costo de la Receta", level=1)
         doc.add_paragraph(f"Costo Total ({porciones} porciones): ${costo_total_receta:.2f}")
         doc.add_paragraph(f"Costo por Porción: ${costo_por_porcion:.2f}")
@@ -168,4 +170,3 @@ def export_to_docx(nombre_receta, ingredientes, porciones, notas, costo_total_re
     bio = BytesIO()
     doc.save(bio)
     return bio.getvalue()
-
