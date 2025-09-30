@@ -6,24 +6,26 @@ st.set_page_config(page_title="Calculadora de Pastelería Profesional", layout="
 
 st.title("🍰 Calculadora de Pastelería Profesional - Chef More's")
 
-# Sidebar
+# --- Configuración de Sidebar ---
 st.sidebar.header("Configuración")
 receta = st.sidebar.selectbox("Selecciona una receta", list(RECETAS.keys()))
 porcion = st.sidebar.number_input("Número de porciones", min_value=1, value=10)
 
-# Mostrar receta seleccionada
+# Obtener datos de la receta seleccionada
 data = RECETAS[receta]
+
+# --- Presentación de la Receta ---
 st.subheader(f"📌 {receta}")
 st.write(data.get("descripcion", "Sin descripción disponible."))
 
 st.markdown("### Ingredientes")
 tabla = []
-# Se calcula la cantidad total de ingredientes ajustada por la porción
+
+# Lógica para recalcular ingredientes
 for ing in data["ingredientes"]:
-    # Se asegura que la clave 'porciones' exista en data
+    # Se asegura que la clave 'porciones' exista en data (por defecto 1)
     porciones_originales = data.get("porciones", 1) 
     
-    # Manejo de división por cero si la receta no tiene porciones definidas (default a 1)
     if porciones_originales == 0:
         factor = porcion
     else:
@@ -34,21 +36,22 @@ for ing in data["ingredientes"]:
 
 st.table(tabla)
 
-# Notas
+# --- Sección de Notas ---
 st.markdown("### 📝 Notas")
 nota = st.text_area("Escribe tus observaciones aquí", value=data.get("notas", ""))
 
-# Exportar
+# --- Sección de Exportación y Botones ---
 st.markdown("### 📂 Exportar Receta")
 col1, col2 = st.columns(2)
 
-# --- CORRECCIÓN 1: Pasar data["ingredientes"] y usar st.download_button ---
+# Botón de Descarga PDF
 with col1:
-    st.write("PDF")
-    # 1. Llamamos a la función con el argumento correcto: data["ingredientes"]
+    st.write("Generar PDF")
+    
+    # Llamamos a la función de exportación, pasando solo la lista de ingredientes
     pdf_bytes = export_to_pdf(receta, data["ingredientes"], porcion, nota)
     
-    # 2. Usamos st.download_button para que el usuario pueda descargar los bytes devueltos
+    # Usamos st.download_button para que Streamlit gestione la descarga
     st.download_button(
         label="Descargar PDF",
         data=pdf_bytes,
@@ -56,12 +59,14 @@ with col1:
         mime="application/pdf"
     )
 
+# Botón de Descarga DOCX
 with col2:
-    st.write("DOCX")
-    # 1. Llamamos a la función con el argumento correcto: data["ingredientes"]
+    st.write("Generar Word (DOCX)")
+    
+    # Llamamos a la función de exportación
     docx_bytes = export_to_docx(receta, data["ingredientes"], porcion, nota)
 
-    # 2. Usamos st.download_button para que el usuario pueda descargar los bytes devueltos
+    # Usamos st.download_button
     st.download_button(
         label="Descargar DOCX",
         data=docx_bytes,
