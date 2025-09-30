@@ -29,7 +29,7 @@ class PDF(FPDF):
         self.cell(
             0,
             10,
-            "Calculadora de Pastelería Profesional – Chef More’s",
+            "Calculadora de Pastelería Profesional - Chef More’s", # CORRECCIÓN: Se cambió '–' por '-'
             0,
             0,
             "C",
@@ -87,7 +87,7 @@ def export_to_pdf(nombre_receta, ingredientes, porciones, notas, costo_total_rec
     if costo_total_receta > 0:
         pdf.ln(10)
         pdf.set_font(FONT_NAME, "B", 12)
-        # CORRECCIÓN: Se elimina el emoji 💰 para evitar error de codificación con FPDF
+        # Se elimina el emoji 💰 y ahora el guion '–' ha sido corregido en el footer.
         pdf.cell(0, 8, "Costo de la Receta", 0, 1) 
         
         pdf.set_font(FONT_NAME, "", 11)
