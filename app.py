@@ -357,8 +357,3 @@ with col2:
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             disabled=True
         )
-
-
-
-  
-    
