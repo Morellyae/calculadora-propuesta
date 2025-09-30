@@ -12,23 +12,13 @@ def export_to_pdf(nombre_receta, ingredientes, porciones, notas):
     """Genera un archivo PDF con la receta y lo devuelve como objeto Bytes."""
     pdf = FPDF()
     
-    # === CORRECCIÓN DE TIPOGRAFÍA: Registramos DejaVuSans y la hacemos robusta ===
-    FONT_NAME = 'DejaVuSans'
-    try:
-        # Se asume que solo el archivo 'DejaVuSans.ttf' está disponible.
-        # Si falla, la aplicación usa el método por defecto de fpdf, pero nos aseguramos de que no haya AttributeError.
-        pdf.add_font(FONT_NAME, '', 'DejaVuSans.ttf', uni=True)
-        pdf.add_font(FONT_NAME, 'B', 'DejaVuSans.ttf', uni=True) # Usamos el mismo archivo TTF para negritas (fpdf lo renderiza)
-    except Exception as e:
-        # Si falla el registro, usamos la fuente por defecto de fpdf (por ejemplo, Helvetica o Times),
-        # que siempre están disponibles y evitan el 'NoneType' error.
-        print(f"Error al registrar la fuente DejaVuSans: {e}. Usando fuente por defecto.")
-        FONT_NAME = 'Times'
-
+    # Usamos 'Times', una fuente interna de fpdf que está garantizada para funcionar 
+    # y soporta acentos en español, resolviendo el error de 'NoneType'.
+    FONT_NAME = 'Times'
     pdf.add_page()
     
     # Configuración de fuente y título
-    pdf.set_font(FONT_NAME, "B", 16) # Usamos la fuente registrada
+    pdf.set_font(FONT_NAME, "B", 16) 
     pdf.cell(0, 12, nombre_receta, 0, 1, "C") # Título centrado
     
     pdf.set_font(FONT_NAME, "", 12)
@@ -60,7 +50,6 @@ def export_to_pdf(nombre_receta, ingredientes, porciones, notas):
         pdf.multi_cell(0, 5, notas)
         
     # Devuelve el PDF como string/bytes (dest='S') codificado para compatibilidad.
-    # El try/except garantiza que pdf.output() no devuelva None.
     return pdf.output(dest='S').encode('latin-1')
 
 # Exportar a DOCX (usa python-docx, devuelve bytes)
@@ -96,3 +85,4 @@ def export_to_docx(nombre_receta, ingredientes, porciones, notas):
     bio = BytesIO()
     doc.save(bio)
     return bio.getvalue()
+
