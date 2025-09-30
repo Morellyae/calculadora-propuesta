@@ -1,58 +1,97 @@
-import os
+# Este archivo contiene las funciones para exportar la receta a PDF (usando fpdf) y DOCX (usando python-docx).
+# Ambas funciones devuelven el archivo como bytes en memoria, lo cual es necesario para st.download_button en Streamlit.
+
+import io
 from fpdf import FPDF
+from docx import Document
+from docx.shared import Inches
+from io import BytesIO
 
-class PDF(FPDF):
-    def __init__(self, logo_path="logo.png"):
-        super().__init__()
-        # Registrar fuente DejaVu (soporta UTF-8: ñ, tildes, símbolos)
-        font_path = os.path.join(os.path.dirname(__file__), "DejaVuSans.ttf")
-        self.add_font("DejaVu", "", font_path, uni=True)
-        self.set_font("DejaVu", "", 12)
-        self.logo_path = logo_path
-
-    def header(self):
-        # Logo
-        if os.path.exists(self.logo_path):
-            self.image(self.logo_path, 10, 8, 25)
-        # Encabezado
-        self.set_font("DejaVu", "", 12)
-        self.cell(0, 10, "Sistema de Recetas – Chef More's", 0, 1, "C")
-        self.ln(5)
-
-    def footer(self):
-        # Posicionar desde el borde inferior
-        self.set_y(-15)
-        self.set_font("DejaVu", "", 8)
-        self.cell(0, 10, "© Chef More's – Sistema de Recetas", 0, 0, "C")
-
-def export_to_pdf(receta, data, porcion, nota):
-    pdf = PDF()
+# Exportar a PDF (usa fpdf, devuelve bytes)
+def export_to_pdf(nombre_receta, ingredientes, porciones, notas):
+    """Genera un archivo PDF con la receta y lo devuelve como objeto Bytes."""
+    pdf = FPDF()
     pdf.add_page()
+    
+    # === CORRECCIÓN DE TIPOGRAFÍA: Registramos DejaVuSans ===
+    # El archivo DejaVuSans.ttf DEBE estar en la raíz del repositorio.
+    try:
+        pdf.add_font('DejaVuSans', '', 'DejaVuSans.ttf', uni=True)
+        pdf.add_font('DejaVuSans', 'B', 'DejaVuSans-Bold.ttf', uni=True) # Asumiendo el nombre estándar para negritas
+        FONT_NAME = 'DejaVuSans'
+    except:
+        # Fallback seguro (aunque podría fallar en algunos entornos si no es un archivo .ttf registrado)
+        FONT_NAME = 'Arial' 
 
-    # Título
-    pdf.set_font("DejaVu", "", 16)
-    pdf.cell(0, 10, f"Receta: {receta}", ln=True, align="C")
+    # Configuración de fuente y título
+    pdf.set_font(FONT_NAME, "B", 16) # Usamos la nueva fuente registrada
+    pdf.cell(0, 12, nombre_receta, 0, 1, "C") # Título centrado
+    
+    pdf.set_font(FONT_NAME, "", 12)
+    pdf.cell(0, 8, f"Porciones: {porciones}", 0, 1)
 
-    # Porciones
-    pdf.set_font("DejaVu", "", 12)
-    pdf.ln(5)
-    pdf.cell(0, 10, f"Porción: {porcion}", ln=True)
+    pdf.ln(5) # Salto de línea
+
+    # Encabezados de la tabla de ingredientes
+    pdf.set_font(FONT_NAME, "B", 12)
+    pdf.set_fill_color(200, 220, 255) # Color de fondo
+    pdf.cell(60, 10, "Ingrediente", 1, 0, "C", 1)
+    pdf.cell(30, 10, "Cantidad", 1, 0, "C", 1)
+    pdf.cell(30, 10, "Unidad", 1, 1, "C", 1) # 1 al final para salto de línea
+    
+    # Contenido de la tabla
+    pdf.set_font(FONT_NAME, "", 11)
+    for ing in ingredientes:
+        pdf.cell(60, 8, ing["nombre"], 1, 0)
+        pdf.cell(30, 8, str(ing["cantidad"]), 1, 0, "R") # Alineación a la derecha para números
+        pdf.cell(30, 8, ing["unidad"], 1, 1)
+
+    # Notas
+    if notas:
+        pdf.ln(10)
+        pdf.set_font(FONT_NAME, "B", 12)
+        pdf.cell(0, 8, "Notas:", 0, 1)
+        pdf.set_font(FONT_NAME, "", 10)
+        # multi_cell permite saltos de línea automáticos
+        pdf.multi_cell(0, 5, notas)
+        
+    # Devuelve el PDF como string/bytes (dest='S') codificado para compatibilidad
+    return pdf.output(dest='S').encode('latin-1')
+
+# Exportar a DOCX (usa python-docx, devuelve bytes)
+def export_to_docx(nombre_receta, ingredientes, porciones, notas):
+    """Genera un archivo DOCX con la receta y lo devuelve como objeto Bytes."""
+    doc = Document()
+
+    # Título y porciones
+    doc.add_heading(nombre_receta, 0)
+    doc.add_paragraph(f"Porciones: {porciones}")
+    doc.add_paragraph() # Salto de línea
 
     # Ingredientes
-    pdf.ln(5)
-    pdf.set_font("DejaVu", "", 13)
-    pdf.cell(0, 10, "Ingredientes:", ln=True)
-    pdf.set_font("DejaVu", "", 12)
-    for item in data:
-        pdf.multi_cell(0, 8, f"- {item}")
+    table = doc.add_table(rows=1, cols=3)
+    table.style = 'Light Shading Accent 1' # Estilo de tabla
+    hdr_cells = table.rows[0].cells
+    hdr_cells[0].text = 'Ingrediente'
+    hdr_cells[1].text = 'Cantidad'
+    hdr_cells[2].text = 'Unidad'
 
-    # Nota opcional
-    if nota:
-        pdf.ln(5)
-        pdf.set_font("DejaVu", "I", 11)
-        pdf.multi_cell(0, 8, f"Nota: {nota}")
+    for ing in ingredientes:
+        row_cells = table.add_row().cells
+        row_cells[0].text = ing["nombre"]
+        row_cells[1].text = str(ing["cantidad"])
+        row_cells[2].text = ing["unidad"]
 
-    # Exportar como bytes (UTF-8 seguro en fpdf2)
-    return pdf.output(dest="S").encode("latin-1", "replace")
+    # Notas
+    if notas:
+        doc.add_heading('Notas', level=1)
+        doc.add_paragraph(notas)
 
+    # Guardar en memoria (BytesIO) y devolver los bytes (ESENCIAL para Streamlit)
+    bio = BytesIO()
+    doc.save(bio)
+    return bio.getvalue()
+
+
+   
 
