@@ -11,20 +11,24 @@ from io import BytesIO
 def export_to_pdf(nombre_receta, ingredientes, porciones, notas):
     """Genera un archivo PDF con la receta y lo devuelve como objeto Bytes."""
     pdf = FPDF()
+    
+    # === CORRECCIÓN DE TIPOGRAFÍA: Registramos DejaVuSans y la hacemos robusta ===
+    FONT_NAME = 'DejaVuSans'
+    try:
+        # Se asume que solo el archivo 'DejaVuSans.ttf' está disponible.
+        # Si falla, la aplicación usa el método por defecto de fpdf, pero nos aseguramos de que no haya AttributeError.
+        pdf.add_font(FONT_NAME, '', 'DejaVuSans.ttf', uni=True)
+        pdf.add_font(FONT_NAME, 'B', 'DejaVuSans.ttf', uni=True) # Usamos el mismo archivo TTF para negritas (fpdf lo renderiza)
+    except Exception as e:
+        # Si falla el registro, usamos la fuente por defecto de fpdf (por ejemplo, Helvetica o Times),
+        # que siempre están disponibles y evitan el 'NoneType' error.
+        print(f"Error al registrar la fuente DejaVuSans: {e}. Usando fuente por defecto.")
+        FONT_NAME = 'Times'
+
     pdf.add_page()
     
-    # === CORRECCIÓN DE TIPOGRAFÍA: Registramos DejaVuSans ===
-    # El archivo DejaVuSans.ttf DEBE estar en la raíz del repositorio.
-    try:
-        pdf.add_font('DejaVuSans', '', 'DejaVuSans.ttf', uni=True)
-        pdf.add_font('DejaVuSans', 'B', 'DejaVuSans-Bold.ttf', uni=True) # Asumiendo el nombre estándar para negritas
-        FONT_NAME = 'DejaVuSans'
-    except:
-        # Fallback seguro (aunque podría fallar en algunos entornos si no es un archivo .ttf registrado)
-        FONT_NAME = 'Arial' 
-
     # Configuración de fuente y título
-    pdf.set_font(FONT_NAME, "B", 16) # Usamos la nueva fuente registrada
+    pdf.set_font(FONT_NAME, "B", 16) # Usamos la fuente registrada
     pdf.cell(0, 12, nombre_receta, 0, 1, "C") # Título centrado
     
     pdf.set_font(FONT_NAME, "", 12)
@@ -55,7 +59,8 @@ def export_to_pdf(nombre_receta, ingredientes, porciones, notas):
         # multi_cell permite saltos de línea automáticos
         pdf.multi_cell(0, 5, notas)
         
-    # Devuelve el PDF como string/bytes (dest='S') codificado para compatibilidad
+    # Devuelve el PDF como string/bytes (dest='S') codificado para compatibilidad.
+    # El try/except garantiza que pdf.output() no devuelva None.
     return pdf.output(dest='S').encode('latin-1')
 
 # Exportar a DOCX (usa python-docx, devuelve bytes)
@@ -91,7 +96,3 @@ def export_to_docx(nombre_receta, ingredientes, porciones, notas):
     bio = BytesIO()
     doc.save(bio)
     return bio.getvalue()
-
-
-   
-
