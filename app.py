@@ -9,7 +9,9 @@ st.title("🍰 Calculadora de Pastelería Profesional - Chef More's")
 # --- Configuración de Sidebar ---
 st.sidebar.header("Configuración")
 receta = st.sidebar.selectbox("Selecciona una receta", list(RECETAS.keys()))
-porcion = st.sidebar.number_input("Número de porciones", min_value=1, value=10)
+# El valor por defecto de porción debe ser el valor de 'porciones' de la receta, si existe, o 10.
+default_porciones = RECETAS[receta].get("porciones", 10)
+porcion = st.sidebar.number_input("Número de porciones", min_value=1, value=default_porciones)
 
 # Obtener datos de la receta seleccionada
 data = RECETAS[receta]
@@ -23,9 +25,10 @@ tabla = []
 
 # Lógica para recalcular ingredientes
 for ing in data["ingredientes"]:
-    # Se asegura que la clave 'porciones' exista en data (por defecto 1)
+    # Se asegura que la clave 'porciones' exista en data (por defecto 1, si no se encuentra)
     porciones_originales = data.get("porciones", 1) 
     
+    # Previene división por cero en caso de que 'porciones' fuera 0 (aunque se prefiere que sea min_value=1)
     if porciones_originales == 0:
         factor = porcion
     else:
@@ -48,7 +51,7 @@ col1, col2 = st.columns(2)
 with col1:
     st.write("Generar PDF")
     
-    # Llamamos a la función de exportación, pasando solo la lista de ingredientes
+    # Llamamos a la función de exportación, pasando solo la lista de ingredientes (data["ingredientes"])
     pdf_bytes = export_to_pdf(receta, data["ingredientes"], porcion, nota)
     
     # Usamos st.download_button para que Streamlit gestione la descarga
@@ -63,7 +66,7 @@ with col1:
 with col2:
     st.write("Generar Word (DOCX)")
     
-    # Llamamos a la función de exportación
+    # Llamamos a la función de exportación, pasando solo la lista de ingredientes
     docx_bytes = export_to_docx(receta, data["ingredientes"], porcion, nota)
 
     # Usamos st.download_button
@@ -73,3 +76,7 @@ with col2:
         file_name=f"{receta}.docx",
         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
+
+    
+    
+  
