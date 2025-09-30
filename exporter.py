@@ -29,7 +29,7 @@ class PDF(FPDF):
         self.cell(
             0,
             10,
-            "Calculadora de Pastelería Profesional - Chef More's", # CORRECCIÓN FINAL: Se cambió el apóstrofe curvo '’' por el apóstrofe estándar "'"
+            "Calculadora de Pastelería Profesional - Chef More's", # Caracteres ASCII básicos
             0,
             0,
             "C",
@@ -72,8 +72,6 @@ def export_to_pdf(nombre_receta, ingredientes, porciones, notas, costo_total_rec
 
     pdf.set_font(FONT_NAME, "", 11)
     
-    # Determinamos el factor de escala para mostrar las cantidades correctas en el PDF
-    # NOTA: En la lógica de Streamlit (app.py) ya se hace este cálculo
     # Aquí solo mostramos el dato que viene en 'ingredientes' (que ya está escalado)
     for ing in ingredientes:
         cantidad_str = str(ing.get("cantidad_escalada", ing["cantidad"])) # Usamos el valor escalado de app.py
@@ -87,7 +85,6 @@ def export_to_pdf(nombre_receta, ingredientes, porciones, notas, costo_total_rec
     if costo_total_receta > 0:
         pdf.ln(10)
         pdf.set_font(FONT_NAME, "B", 12)
-        # El texto es simple ASCII para evitar problemas de codificación.
         pdf.cell(0, 8, "Costo de la Receta", 0, 1) 
         
         pdf.set_font(FONT_NAME, "", 11)
@@ -104,15 +101,9 @@ def export_to_pdf(nombre_receta, ingredientes, porciones, notas, costo_total_rec
         pdf.multi_cell(0, 5, notas)
 
     # Exportar a memoria
-    # Usamos BytesIO para el manejo robusto de bytes en Streamlit
+    # CORRECCIÓN: pdf.output(dest="S") ya devuelve un bytearray/bytes, no se necesita .encode()
     buffer = BytesIO()
-    try:
-        # Intentamos obtener el resultado directamente como bytes
-        pdf_bytes = pdf.output(dest="S").encode("latin-1", "replace")
-    except UnicodeEncodeError:
-        # Fallback si hay problemas de codificación de caracteres especiales
-        pdf_bytes = pdf.output(dest="S").encode("latin-1", "ignore")
-        
+    pdf_bytes = pdf.output(dest="S") 
     buffer.write(pdf_bytes)
     return buffer.getvalue()
 
