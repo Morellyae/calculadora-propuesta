@@ -1,109 +1,46 @@
-import os
-from datetime import datetime
-import streamlit as st
 from fpdf import FPDF
-from docx import Document
-from docx.shared import Inches
+import os
 
-# ---------------------------
-# Clase PDF personalizada
-# ---------------------------
 class PDF(FPDF):
+    def __init__(self):
+        super().__init__()
+        # Registrar fuente DejaVu para UTF-8
+        font_path = os.path.join(os.path.dirname(__file__), "DejaVuSans.ttf")
+        self.add_font("DejaVu", "", font_path, uni=True)
+        self.set_font("DejaVu", "", 12)
+
+    def header(self):
+        # Logo
+        if os.path.exists("logo.png"):
+            self.image("logo.png", 10, 8, 25)
+        self.set_font("DejaVu", "", 12)
+        self.cell(0, 10, "Sistema de Recetas – Chef More's", 0, 1, "C")
+        self.ln(10)
+
     def footer(self):
         self.set_y(-15)
         self.set_font("DejaVu", "", 8)
-        fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
-        self.cell(
-            0, 10,
-            f"Calculadora de Pastelería Profesional – Chef More's | {fecha}",
-            0, 0, "C"
-        )
+        self.cell(0, 10, "© Chef More's – Sistema de Recetas", 0, 0, "C")
 
-# ---------------------------
-# Exportar a PDF
-# ---------------------------
-def export_to_pdf(nombre, data, porciones, notas):
+def export_to_pdf(receta, data, porcion, nota):
     pdf = PDF()
     pdf.add_page()
 
-    # Registrar fuente DejaVu (UTF-8 seguro)
-    font_path = os.path.join(os.path.dirname(__file__), "DejaVuSans.ttf")
-    pdf.add_font("DejaVu", "", font_path, uni=True)
-    pdf.add_font("DejaVu", "B", font_path, uni=True)
     pdf.set_font("DejaVu", "", 12)
+    pdf.cell(0, 10, f"Receta: {receta}", ln=True)
 
-    # Logo (arriba derecha)
-    logo_path = os.path.join(os.path.dirname(__file__), "logo.png")
-    if os.path.exists(logo_path):
-        pdf.image(logo_path, x=170, y=8, w=30)
+    pdf.ln(5)
+    pdf.cell(0, 10, f"Porción: {porcion}", ln=True)
 
-    # Título
-    pdf.set_font("DejaVu", "B", 14)
-    pdf.cell(0, 10, nombre, ln=True, align="C")
-    pdf.ln(10)
+    pdf.ln(5)
+    pdf.multi_cell(0, 10, "Ingredientes:")
+    for item in data:
+        pdf.multi_cell(0, 10, f"- {item}")
 
-    # Ingredientes
-    pdf.set_font("DejaVu", "", 12)
-    pdf.cell(0, 10, "Ingredientes:", ln=True)
-    for ing in data["ingredientes"]:
-        cantidad_total = ing["cantidad"] * porciones / data["porciones"]
-        pdf.multi_cell(0, 10, f"- {ing['nombre']}: {cantidad_total:.2f} {ing['unidad']}")
-
-    # Notas
-    if notas:
+    if nota:
         pdf.ln(5)
-        pdf.multi_cell(0, 10, f"Notas: {notas}")
+        pdf.multi_cell(0, 10, f"Nota: {nota}")
 
-    # Exportar como descarga
-    pdf_output = pdf.output(dest="S").encode("latin-1", "replace")
-    st.download_button(
-        label="📄 Descargar PDF",
-        data=pdf_output,
-        file_name=f"{nombre}.pdf",
-        mime="application/pdf"
-    )
-
-# ---------------------------
-# Exportar a Word
-# ---------------------------
-def export_to_docx(nombre, data, porciones, notas):
-    doc = Document()
-
-    # Logo
-    logo_path = os.path.join(os.path.dirname(__file__), "logo.png")
-    if os.path.exists(logo_path):
-        doc.add_picture(logo_path, width=Inches(1.0))
-
-    # Título
-    doc.add_heading(nombre, 0)
-
-    # Ingredientes
-    doc.add_heading("Ingredientes:", level=1)
-    for ing in data["ingredientes"]:
-        cantidad_total = ing["cantidad"] * porciones / data["porciones"]
-        doc.add_paragraph(f"- {ing['nombre']}: {cantidad_total:.2f} {ing['unidad']}")
-
-    # Notas
-    if notas:
-        doc.add_heading("Notas:", level=1)
-        doc.add_paragraph(notas)
-
-    # Pie de página (fecha y firma)
-    fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
-    doc.add_paragraph(
-        f"Calculadora de Pastelería Profesional – Chef More's | {fecha}"
-    )
-
-    # Guardar en memoria
-    from io import BytesIO
-    buffer = BytesIO()
-    doc.save(buffer)
-    buffer.seek(0)
-
-    st.download_button(
-        label="📝 Descargar Word",
-        data=buffer,
-        file_name=f"{nombre}.docx",
-        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    )
+    # Exportar como bytes (para Streamlit)
+    return pdf.output(dest="S").encode("latin-1", "replace")
 
