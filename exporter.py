@@ -1,7 +1,6 @@
 # Este archivo contiene las funciones para exportar la receta a PDF (usando fpdf) y DOCX (usando python-docx).
 # Ambas funciones devuelven el archivo como bytes en memoria, lo cual es necesario para st.download_button en Streamlit.
 
-import io
 from fpdf import FPDF
 from docx import Document
 from docx.shared import Inches
@@ -85,4 +84,5 @@ def export_to_docx(nombre_receta, ingredientes, porciones, notas):
     bio = BytesIO()
     doc.save(bio)
     return bio.getvalue()
+
 
