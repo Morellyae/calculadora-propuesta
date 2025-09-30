@@ -12,7 +12,7 @@ def export_to_pdf(nombre_receta, ingredientes, porciones, notas):
     pdf = FPDF()
     
     # Usamos 'Times', una fuente interna de fpdf que está garantizada para funcionar 
-    # y soporta acentos en español, resolviendo el error de 'NoneType'.
+    # y soporta acentos en español.
     FONT_NAME = 'Times'
     pdf.add_page()
     
@@ -48,8 +48,8 @@ def export_to_pdf(nombre_receta, ingredientes, porciones, notas):
         # multi_cell permite saltos de línea automáticos
         pdf.multi_cell(0, 5, notas)
         
-    # Devuelve el PDF como string/bytes (dest='S') codificado para compatibilidad.
-    return pdf.output(dest='S').encode('latin-1')
+    # === CORRECCIÓN CRÍTICA: Se elimina .encode() ya que pdf.output() devuelve bytes o bytearray ===
+    return pdf.output(dest='S')
 
 # Exportar a DOCX (usa python-docx, devuelve bytes)
 def export_to_docx(nombre_receta, ingredientes, porciones, notas):
@@ -85,4 +85,4 @@ def export_to_docx(nombre_receta, ingredientes, porciones, notas):
     doc.save(bio)
     return bio.getvalue()
 
-
+ 
