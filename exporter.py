@@ -43,4 +43,3 @@ def export_to_pdf(receta, data, porcion, nota):
 
     # Exportar como bytes (para Streamlit)
     return pdf.output(dest="S").encode("latin-1", "replace")
-
