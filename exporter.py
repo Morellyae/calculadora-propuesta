@@ -9,7 +9,8 @@ from io import BytesIO
 # Exportar a PDF (usa fpdf, devuelve bytes)
 def export_to_pdf(nombre_receta, ingredientes, porciones, notas):
     """Genera un archivo PDF con la receta y lo devuelve como objeto Bytes."""
-    pdf = FPDF()
+    # Usamos FPDF en modo vertical, con unidad milímetros, y formato A4
+    pdf = FPDF(orientation='P', unit='mm', format='A4') 
     
     # Usamos 'Times', una fuente interna de fpdf que está garantizada para funcionar 
     # y soporta acentos en español.
@@ -35,6 +36,7 @@ def export_to_pdf(nombre_receta, ingredientes, porciones, notas):
     # Contenido de la tabla
     pdf.set_font(FONT_NAME, "", 11)
     for ing in ingredientes:
+        # Aseguramos que la celda se dibuje incluso si los datos son strings largos
         pdf.cell(60, 8, ing["nombre"], 1, 0)
         pdf.cell(30, 8, str(ing["cantidad"]), 1, 0, "R") # Alineación a la derecha para números
         pdf.cell(30, 8, ing["unidad"], 1, 1)
@@ -48,13 +50,12 @@ def export_to_pdf(nombre_receta, ingredientes, porciones, notas):
         # multi_cell permite saltos de línea automáticos
         pdf.multi_cell(0, 5, notas)
         
-    # === CORRECCIÓN CRÍTICA: Asegura que el tipo devuelto es 'bytes' para Streamlit. ===
-    output_data = pdf.output(dest='S')
-    if isinstance(output_data, str):
-        # Si devuelve una cadena, la codificamos a bytes (necesario para fpdf con Times y acentos)
-        return output_data.encode('latin-1')
-    # Si ya es bytes o bytearray, lo devolvemos directamente.
-    return output_data
+    # === CORRECCIÓN FINAL Y ROBUSTA: Usar BytesIO para forzar la salida a bytes ===
+    pdf_output_buffer = BytesIO()
+    pdf_output_buffer.write(pdf.output()) 
+    
+    # Devolvemos el contenido del buffer como bytes (getvalue() es de BytesIO)
+    return pdf_output_buffer.getvalue()
 
 # Exportar a DOCX (usa python-docx, devuelve bytes)
 def export_to_docx(nombre_receta, ingredientes, porciones, notas):
@@ -90,3 +91,6 @@ def export_to_docx(nombre_receta, ingredientes, porciones, notas):
     doc.save(bio)
     return bio.getvalue()
 
+
+
+ 
