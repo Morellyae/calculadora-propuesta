@@ -3,6 +3,13 @@ from recetas import RECETAS
 from exporter import export_to_pdf, export_to_docx
 
 st.set_page_config(page_title="Calculadora de Pastelería Profesional", layout="wide")
+import os
+
+# Ruta al logo en el repo
+logo_path = os.path.join(os.path.dirname(__file__), "logo.png")
+
+# Mostrar logo en la parte superior de la app
+st.image(logo_path, width=120)  # puedes ajustar el tamaño
 
 st.title("🍰 Calculadora de Pastelería Profesional - Chef More's")
 
