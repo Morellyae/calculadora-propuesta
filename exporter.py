@@ -4,93 +4,106 @@ import streamlit as st
 from fpdf import FPDF
 from docx import Document
 from docx.shared import Inches
-from io import BytesIO
 
-LOGO_PATH = os.path.join(os.path.dirname(__file__), "logo.png")
-FONT_PATH = os.path.join(os.path.dirname(__file__), "DejaVuSans.ttf")
-
-# -------- PDF -------- #
+# ---------------------------
+# Clase PDF personalizada
+# ---------------------------
 class PDF(FPDF):
-    def header(self):
-        if os.path.exists(LOGO_PATH):
-            self.image(LOGO_PATH, x=170, y=8, w=25)
-        self.set_font("Arial", "B", 14)
-        self.cell(0, 10, "Calculadora de Pastelería Profesional", ln=1, align="C")
-
     def footer(self):
         self.set_y(-15)
-        self.set_font("Arial", "I", 9)
+        self.set_font("DejaVu", "", 8)
         fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
         self.cell(
-            0,
-            10,
-            f"Calculadora de Pastelería Profesional – Chef More’s | Exportado: {fecha}",
-            align="C",
+            0, 10,
+            f"Calculadora de Pastelería Profesional – Chef More's | {fecha}",
+            0, 0, "C"
         )
 
-def export_to_pdf(nombre, data, porcion, nota):
+# ---------------------------
+# Exportar a PDF
+# ---------------------------
+def export_to_pdf(nombre, data, porciones, notas):
     pdf = PDF()
-    pdf.set_font("Arial", "", 12)
     pdf.add_page()
 
-    # Título receta
-    pdf.set_font("Arial", "B", 16)
-    pdf.cell(0, 10, nombre, ln=1, align="C")
+    # Registrar fuente DejaVu (UTF-8 seguro)
+    font_path = os.path.join(os.path.dirname(__file__), "DejaVuSans.ttf")
+    pdf.add_font("DejaVu", "", font_path, uni=True)
+    pdf.add_font("DejaVu", "B", font_path, uni=True)
+    pdf.set_font("DejaVu", "", 12)
+
+    # Logo (arriba derecha)
+    logo_path = os.path.join(os.path.dirname(__file__), "logo.png")
+    if os.path.exists(logo_path):
+        pdf.image(logo_path, x=170, y=8, w=30)
+
+    # Título
+    pdf.set_font("DejaVu", "B", 14)
+    pdf.cell(0, 10, nombre, ln=True, align="C")
+    pdf.ln(10)
 
     # Ingredientes
-    pdf.set_font("Arial", "B", 12)
-    pdf.cell(0, 10, "Ingredientes:", ln=1)
-
-    pdf.set_font("Arial", "", 11)
+    pdf.set_font("DejaVu", "", 12)
+    pdf.cell(0, 10, "Ingredientes:", ln=True)
     for ing in data["ingredientes"]:
-        cantidad_total = ing["cantidad"] * porcion / data["porciones"]
-        pdf.cell(0, 8, f"- {ing['nombre']}: {cantidad_total:.2f} {ing['unidad']}", ln=1)
+        cantidad_total = ing["cantidad"] * porciones / data["porciones"]
+        pdf.multi_cell(0, 10, f"- {ing['nombre']}: {cantidad_total:.2f} {ing['unidad']}")
 
     # Notas
-    pdf.ln(5)
-    pdf.set_font("Arial", "B", 12)
-    pdf.cell(0, 10, "Notas:", ln=1)
-    pdf.set_font("Arial", "", 11)
-    pdf.multi_cell(0, 8, nota if nota else "Sin notas adicionales.")
+    if notas:
+        pdf.ln(5)
+        pdf.multi_cell(0, 10, f"Notas: {notas}")
 
-    # Descargar
+    # Exportar como descarga
     pdf_output = pdf.output(dest="S").encode("latin-1", "replace")
     st.download_button(
         label="📄 Descargar PDF",
         data=pdf_output,
         file_name=f"{nombre}.pdf",
-        mime="application/pdf",
+        mime="application/pdf"
     )
 
-# -------- WORD -------- #
-def export_to_docx(nombre, data, porcion, nota):
+# ---------------------------
+# Exportar a Word
+# ---------------------------
+def export_to_docx(nombre, data, porciones, notas):
     doc = Document()
 
-    if os.path.exists(LOGO_PATH):
-        doc.add_picture(LOGO_PATH, width=Inches(1.0))
+    # Logo
+    logo_path = os.path.join(os.path.dirname(__file__), "logo.png")
+    if os.path.exists(logo_path):
+        doc.add_picture(logo_path, width=Inches(1.0))
 
-    doc.add_heading(nombre, level=1)
+    # Título
+    doc.add_heading(nombre, 0)
 
-    doc.add_heading("Ingredientes:", level=2)
+    # Ingredientes
+    doc.add_heading("Ingredientes:", level=1)
     for ing in data["ingredientes"]:
-        cantidad_total = ing["cantidad"] * porcion / data["porciones"]
+        cantidad_total = ing["cantidad"] * porciones / data["porciones"]
         doc.add_paragraph(f"- {ing['nombre']}: {cantidad_total:.2f} {ing['unidad']}")
 
-    doc.add_heading("Notas:", level=2)
-    doc.add_paragraph(nota if nota else "Sin notas adicionales.")
+    # Notas
+    if notas:
+        doc.add_heading("Notas:", level=1)
+        doc.add_paragraph(notas)
 
+    # Pie de página (fecha y firma)
     fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
     doc.add_paragraph(
-        f"\nCalculadora de Pastelería Profesional – Chef More’s\nExportado: {fecha}"
+        f"Calculadora de Pastelería Profesional – Chef More's | {fecha}"
     )
 
-    file_stream = BytesIO()
-    doc.save(file_stream)
-    file_stream.seek(0)
+    # Guardar en memoria
+    from io import BytesIO
+    buffer = BytesIO()
+    doc.save(buffer)
+    buffer.seek(0)
 
     st.download_button(
         label="📝 Descargar Word",
-        data=file_stream,
+        data=buffer,
         file_name=f"{nombre}.docx",
-        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
+
