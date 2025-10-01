@@ -26,6 +26,7 @@ def sync_to_costos_actuales():
     for nombre, datos in st.session_state.precios_ingredientes.items():
         if nombre in st.session_state.COSTOS_ACTUALES:
             st.session_state.COSTOS_ACTUALES[nombre]["costo"] = datos["precio"]
+            st.session_state.COSTOS_ACTUALES[nombre]["unidad_base"] = datos["unidad"]
         else:
             # Agregar nuevo ingrediente
             st.session_state.COSTOS_ACTUALES[nombre] = {
@@ -153,18 +154,18 @@ with tab3:
             st.metric("Precio Promedio", f"${precio_promedio:.5f}")
         
         # Exportar JSON
-        if st.button("📥 Exportar Precios (JSON)"):
-            datos_export = {
-                "fecha_exportacion": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "ingredientes": st.session_state.precios_ingredientes
-            }
-            json_str = json.dumps(datos_export, indent=2, ensure_ascii=False)
-            st.download_button(
-                label="Descargar JSON",
-                data=json_str,
-                file_name=f"precios_chef_mores_{datetime.now().strftime('%Y%m%d')}.json",
-                mime="application/json"
-            )
+        st.markdown("---")
+        datos_export = {
+            "fecha_exportacion": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "ingredientes": st.session_state.precios_ingredientes
+        }
+        json_str = json.dumps(datos_export, indent=2, ensure_ascii=False)
+        st.download_button(
+            label="📥 Descargar JSON",
+            data=json_str,
+            file_name=f"precios_chef_mores_{datetime.now().strftime('%Y%m%d')}.json",
+            mime="application/json"
+        )
     else:
-        st.info("No h
-                  
+        st.info("No hay ingredientes cargados. Usa la pestaña ➕ Agregar Ingrediente.")
+
