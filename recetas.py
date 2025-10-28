@@ -238,7 +238,7 @@ RECETAS = {
             {"nombre": "Sal", "cantidad": 1, "unidad": "g"},
             {"nombre": "Leche", "cantidad": 60, "unidad": "ml"}
         ],
-        "notas": "Batir los huevos con el azúcar hasta espumar. Agregar el aceite, el puré de calabaza y la vainilla. Incorporar los ingredientes secos tamizados y por último la leche. Hornear a 180°C durante 40–45 minutos o hasta que al insertar un palillo, salga limpio. Dejar enfriar y decorar al gusto."
+       "notas": "Batir los huevos con el azúcar hasta espumar. Agregar el aceite, el puré de calabaza y la vainilla. Incorporar los ingredientes secos tamizados y por último la leche. Hornear a 180°C durante 40-45 minutos o hasta que al insertar un palillo, salga limpio. Dejar enfriar y decorar al gusto."
     },
     "Glaseado de Queso Crema": {
         "descripcion": "Cobertura cremosa y ligeramente cítrica para tortas y cupcakes. Perfecta para la Torta de Calabaza Tradicional.",
